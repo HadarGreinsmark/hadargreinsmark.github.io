@@ -16,7 +16,7 @@
 title: Hadar Greinsmark
 description: > # this means to ignore newlines until "baseurl:"
   Hadar Greinsmark's website and blog
-baseurl: "/" # the subpath of your site, e.g. /blog
+baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://hadargreinsmark.github.io" # the base hostname & protocol for your site
 github_username:    HadarGreinsmark
 twitter_username:   HadarGreinsmark
