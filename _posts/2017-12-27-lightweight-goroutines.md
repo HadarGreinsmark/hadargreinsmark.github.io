@@ -8,7 +8,7 @@ Often, we're satisfied with saying that goroutines are a more “lightweight” 
 
 # Scheduling Tasks
 
-Goroutines are built on the principle of event-driven architecture. When an event happens, the event is put on a queue. That event triggers a task when the processor has time to do so. What happens if the task triggered takes a long time to execute? Then all other events on the queue get stalled. That’s the reason we have threads, right. If some task claims the processor for too long, the thread gets interrupted by the scheduler that in turn lets other threads do their tasks. The problem is that we get a lower throughput, as we have to spend time putting away half-done work while switching between tasks. To be more concrete, half-done work can be CPU registers of variables that we are supposed to summed up.
+Goroutines are built on the principle of event-driven architecture. When an event happens, a task related to the event is put on a queue. The event loop goes through the queue and executes the tasks one by one. What happens if the task triggered takes a long time to execute? Then all other events on the queue get stalled. Isn't that the reason we want to use threads, so we can assure responsiveness? If some task claims the processor for too long, the thread gets interrupted by the scheduler, that in turn lets other threads do their tasks. The problem is that we get a lower throughput, as we have to spend time putting away half-done work while switching between tasks. To be more concrete, half-done work can for example be variables that we want to multiply together and is occupying a couple of CPU registers. In that case, we would have to swap all those registers back and forth.
 
 Goroutines tries to solve the stalling problem of the event-driven approach by letting the task invoke the scheduler itself when appropriate. This typically occurs when the task has to wait for some input or output and doesn’t have anything to do. In Go 1.2 the scheduler is also [invoked when doing function calls](https://golang.org/doc/go1.2#preemption), as the CPU registers has to be given over to the calle anyways. Go also reduces the risk of stalling by running parallel event loops on different CPU cores, but we'll not bring that up here.
 
@@ -65,15 +65,15 @@ var server = net.createServer(function(socket) {
 server.listen(7777);
 ```
 
-As you can see, for each call where we have to wait for an external operation, we give a callback function as argument. `createServer()` for accepting new connections, `on()` to read data and `write()` for filling the buffer when having space available. All have to wait until an external operation is finished. Meanwhile, the event loop can perform other things while waiting. As you can see, the event driven approach can sometimes be hard to read as you have to define nested function definitions and keep track of variable scopes. Newer versions of JavaScript try to deal with this issue using async/await. But Go manages all of these things for you, so you don't have to think about it at all.
+As you can see, for each call where we have to wait for an external operation, we give a callback function as argument. `createServer()` for accepting new connections, `on()` to read data and `write()` for filling the buffer when having space available. All of those have to wait until an external operation is finished. Meanwhile, the event loop can perform other things while waiting. As you can see, the event driven approach can sometimes be hard to read as you have to define nested function definitions and keep track of variable scopes. Newer versions of JavaScript try to deal with this issue using async/await. But Go manages all of these things for you, so you don't have to think about it at all.
 
 # Go Without Goroutines
 
 Above, we have been satisfied with the explanation that we do other things while we "wait for some external operation to finish". But how does that really work? To fully understand that, we have to dive into how UNIX polling and file descriptors work. We do it using an example of our own very simple event-driven TCP server, that uses the same idea as in the Go scheduler.
 
-A file descriptor is a resource that can handle input, output and other related operations on external resources. They're used when reading/writing a file, but also for listening on a TCP port for new clients and handle an open TCP connection. We can access these resources by using functions like `accept()`, `read()` and `write()`. The problem is that these functions can only handle one resource at a time. Fortunately, we can use UNIX polling to watch for events on several resources at the same time. 
+A file descriptor is a resource that can handle input, output and other related operations on external resources. They're used when reading/writing a file, but also for listening on a TCP port for new clients and handle an open TCP connection. We can access these resources by using functions like `accept()`, `read()` and `write()` in UNIX. The problem is that these functions can only handle one resource at a time. Fortunately, we can use UNIX polling to watch for events on several resources at the same time. 
 
-In our example, we’re using the [`epoll`](http://man7.org/linux/man-pages/man7/epoll.7.html) system call that that is only supported on Linux. The Go runtime is using the same system call in a similar fashion. In Go, you can access system calls through the `golang.org/x/sys/unix` package. It gives you a Go friendly syscall-API to work with.
+In our example, we’re using the [`epoll`](http://man7.org/linux/man-pages/man7/epoll.7.html) system call for this, that is only supported on Linux. The Go runtime uses the same system call in a similar fashion. In Go, you can access system calls through the `golang.org/x/sys/unix` package. It gives you a Go friendly syscall-API to work with.
 
 ```go
 type GoroutineState struct {
@@ -84,7 +84,7 @@ type GoroutineState struct {
 
 The variables related to each goroutine is emulated using our `GoroutineState`, that is stored in a map with the TCP connection's file descriptor as key.
 
-Next, we implement the event loop with `EpollWait()` watching for file descriptor events from the TCP listener and the TCP connections. Check out the full code at [this Github repo](https://github.com/HadarGreinsmark/goroutines-poll-example) for full error handling.
+Next, we implement the event loop with `EpollWait()` that here watches for file descriptor events from the TCP listener and the TCP connections. `EpollCtl()` is used for changing the set of resources to watch for events. Check out the full code at [this Github repo](https://github.com/HadarGreinsmark/goroutines-poll-example) for full error handling.
 
 
 ```go
@@ -152,9 +152,11 @@ func replierPoll(listener *net.TCPListener) {
 
 Our event loop is waiting for three types of events:
 
-* New connection: TCP port listener triggers `POLLIN` event, `AcceptTCP()` will return immediately
-* Receive data from TCP client: client socket triggers `POLLIN` event, `Read()` will return immediately
-* Space available in buffer to be sent to TCP client: client socket triggers `POLLOUT` event, `Write()` will return immediately
+* New connection: TCP port listener triggers `POLLIN` event, `AcceptTCP()` is promised to return immediately
+* Receive data from TCP client: client socket triggers `POLLIN` event, `Read()` is promised to return immediately
+* Space available in buffer to be sent to TCP client: client socket triggers `POLLOUT` event, `Write()` is promised to return immediately
+
+Here is the code for adding the new pseudo-goroutine to a new connection:
 
 ```go
 func addNewClientPoll(epollFd int, conn *net.TCPConn) *GoroutineState {
@@ -177,8 +179,6 @@ func addNewClientPoll(epollFd int, conn *net.TCPConn) *GoroutineState {
     return &newState
 }
 ```
-
-`EpollCtl()` is used for changing the set of resources to watch for events.
 
 `epoll` only works on Linux. But similar system calls can be found on other operating systems, like `kqueue()` on Mac/BSD and the less scalable `poll()` on POSIX systems.
 
