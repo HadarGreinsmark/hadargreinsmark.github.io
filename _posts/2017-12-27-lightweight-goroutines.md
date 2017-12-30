@@ -69,7 +69,7 @@ As you can see, for each call where we have to wait for an external operation, w
 
 # Go Without Goroutines
 
-Above, we have been satisfied with the explanation that we do other things while we "wait for some external operation to finish". But how does that really work? To fully understand that, we have to dive into how UNIX polling and file descriptors work. We do it using an example of our own very simple event-driven TCP server, that uses the same idea as in the Go scheduler.
+Above, we have been satisfied with the explanation that we do other things while we "wait for some external operation to finish". But how does that really work? To fully understand that, we have to dive into how UNIX polling and file descriptors work. We do it by using them in the same example above, and implementing the scheduling logic of our own pseudo-goroutines ourselves.
 
 A file descriptor is a resource that can handle input, output and other related operations on external resources. They're used when reading/writing a file, but also for listening on a TCP port for new clients and handle an open TCP connection. We can access these resources by using functions like `accept()`, `read()` and `write()` in UNIX. The problem is that these functions can only handle one resource at a time. Fortunately, we can use UNIX polling to watch for events on several resources at the same time. 
 
