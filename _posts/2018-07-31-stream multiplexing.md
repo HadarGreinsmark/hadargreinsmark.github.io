@@ -2,7 +2,7 @@
 layout: post
 title:  "Moving from TCP to Stream Multiplexing"
 ---
-In recent years, lots of effort have been put into moving the web towards HTTP/2
+In recent years, lots of efforts have been put into moving the web towards HTTP/2
 
 Multi-streaming is the technique of giving a connection multipe independent streams within one connection. By giving the hosts the ability to send messages on different streams, it allows for the network and the reveiving host to process the messages in any order. I.e. messages on independent streams can be processed concurrently. Messages sent in the same stream in contrary has to be processed in the order it was sent. What does such an ease in the processing requirement allow?
 
@@ -11,14 +11,14 @@ Internet have adopted TCP as the primary transmission protocol for streams betwe
 
 Another problem arising when having many connections between two IP addresses, is the fact that each end’s port number is reserved over a time. This is to make sure old packets in the network won’t disturb a new connection on the same port pair. For example, a TCP connection form 1.1.1.1:60100 to 2.2.2.2:80 is in Linux blocked for reuse for 1 minute. New connections have to use another port. 
 
-## First effort with SCTP
+## First efforts with SCTP
 In year 2000, the IETF standardization institute defined the SCTP  transport layer protocol as an alternative to TCP. Among many introduced features, stream multiplexing is one. Each packet sent through the network may contain several data chunks, where each chunks is associated with a stream. The client and server negotiate on the amount of streams should be used, but there's a limit of 65 536 streams at max. If a packet gets dropped, only streams with data chunks in the dropped packet have to wait for retransmission of the packet. 
 
-## Virtualizing multiplexing with HTTP/2
+## Virtualizing streams with HTTP/2
 Stantardized in 2015 by IETF, HTTP/2 introduces stream multiplexing in the application layer 7. That way multiple streams is "virtualized" within one TCP connection. Each stream can have a priority as well as a dependency on another stream. I.e. if a client sends two concurrent requests and want the first request to be delivered before the second one, the second stream can refer to the first stream as a dependency. Priorities and stream dependencies give hints to the server in which order to deliver responses.
 
-## Redefine the stack with QUIC
-In an effort by Google to replace TCP without having to wait for support for a new
+## Redefining the stack with QUIC
+In an effort by Google to replace TCP without having to push for support for new transport protocols on the Internet, they are experimenting with a protocol called QUIC. In order to be easily deployed, QUIC is sending its data segments on top of UDP which is commonly supported by switches and firewalls on the Internet. QUIC partly overlaps with HTTP/2 as both are introducing the notion of streams. Though, HTTP/2's stream handling are more complex as it has stream priorites and stream dependencies.
 
 # Benefited Use Cases
 Multi-streaming enables the client to fire off multiple requests at the same time, so the server can prepare all of them in one round-trip time. HTTP 1.1 is notorious for having to sequentially request and wait for the response, before sending a second request. Isolating each request-response pair in its own stream works well if the messages are small, as the round-trip time then is of a greater factor than the data transmission time.
