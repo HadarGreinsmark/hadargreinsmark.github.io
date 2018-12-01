@@ -51,38 +51,6 @@ article {
     @include media-query($on-palm) {
         padding: 1em 1em 0.3em;
     }
-
-    > .entry-content {
-        @include media-query($on-palm) {
-            font-size: 80%;
-        }
-
-        &:first-letter {
-            color: #b7b1a9;
-            display: inline-block;
-            float: left;
-            font-family: "Playfair Display";
-            font-size: 121px;
-            font-style: normal;
-            font-weight: 700;
-            line-height: 70px;
-            margin: 6px 10px 0 -5px;
-
-            @include media-query($on-palm) {
-                font-size: 70px;
-                line-height: 30px;
-            }
-        }
-
-        &:first-line {
-            color: #787065;
-            font-family: "Playfair Display SC";
-            font-size: 1em;
-            font-style: normal !important;
-            font-weight: bold;
-            letter-spacing: 2px;
-        }
-    }
 }
 
 .post-header {
