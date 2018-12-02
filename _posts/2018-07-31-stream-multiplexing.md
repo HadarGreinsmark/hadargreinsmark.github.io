@@ -3,8 +3,6 @@ layout: post
 title:  "Moving from TCP to Stream Multiplexing"
 ---
 <img alt="Service de-multiplexing" src="{{site.baseurl}}/assets/stream-multiplexing.png" style="float: right;" />
-In recent years, lots of efforts have been put into moving the web towards HTTP/2
-
 Multi-streaming is the technique of giving a connection multiple independent streams within one connection. By giving the hosts the ability to send messages on different streams, it allows for the network and the receiving host to process the messages in any order. I.e. messages on independent streams can be processed concurrently. Messages sent in the same stream in contrary has to be processed in the order it was sent. What does such an ease in the processing requirement allow? 
 
 

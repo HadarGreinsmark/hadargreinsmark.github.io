@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "My new tech blog"
+title:  "My New Tech Blog"
 ---
 Hi and welcome to my new tech blog. I have for many years thought about starting a blog, but have always been struggling against thoughts like where and how to publish it. But now I'm starting one!
 
