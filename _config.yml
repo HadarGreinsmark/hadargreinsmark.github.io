@@ -24,5 +24,3 @@ twitter_username:   HadarGreinsmark
 
 # Build settings
 markdown: kramdown
-
-theme: jekyll-theme-minimal
